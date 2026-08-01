@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wyoming OMP Bridge Configuration</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Wyoming to OMP Bridge Dashboard</h1>
+
+        <div class="card">
+            <h2>OMP Subprocess Configuration</h2>
+            <form action="/omp/update" method="POST">
+
+                <!-- Core Provider -->
+                <fieldset>
+                    <legend>Core Provider</legend>
+                    <div class="form-group">
+                        <label for="provider">LLM Provider:</label>
+                        <select id="provider" name="provider" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                            <option value="OpenAI" {% if config.omp.provider == 'OpenAI' %}selected{% endif %}>OpenAI</option>
+                            <option value="Anthropic" {% if config.omp.provider == 'Anthropic' %}selected{% endif %}>Anthropic</option>
+                            <option value="Gemini" {% if config.omp.provider == 'Gemini' %}selected{% endif %}>Google Gemini</option>
+                            <option value="Custom" {% if config.omp.provider == 'Custom' %}selected{% endif %}>Custom / llama.cpp</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="base_url_group" style="{% if config.omp.provider != 'Custom' %}display: none;{% endif %}">
+                        <label for="base_url">Custom Base URL (e.g., http://localhost:8080/v1):</label>
+                        <input type="text" id="base_url" name="base_url" value="{{ config.omp.base_url }}" placeholder="http://localhost:8080/v1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="model">Model Name:</label>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="text" id="model" name="model" value="{{ config.omp.model }}" list="model_list" placeholder="gpt-4o, claude-3-5-sonnet, or your custom model" style="flex: 1;">
+                            <button type="button" id="fetch_models_btn" style="white-space: nowrap;">Fetch Models</button>
+                        </div>
+                        <datalist id="model_list"></datalist>
+                        <div id="model_fetch_status" style="font-size: 0.8rem; margin-top: 0.25rem; color: #64748b;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="api_key">API Key (Leave blank if not required for local host):</label>
+                        <input type="password" id="api_key" name="api_key" value="{{ config.omp.api_key }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="host_info">Host Info:</label>
+                        <input type="text" id="host_info" name="host_info" value="{{ config.omp.host_info }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="api_keys">Extra Environment Variables (KEY=VALUE, one per line):</label>
+                        <textarea id="api_keys" name="api_keys" rows="3" style="width: 100%; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.5rem;">{% for k, v in config.omp.api_keys.items() %}{{ k }}={{ v }}&#10;{% endfor %}</textarea>
+                    </div>
+                </fieldset>
+
+                <!-- Prompt & Behavior -->
+                <fieldset>
+                    <legend>Prompt &amp; Behavior</legend>
+                    <div class="form-group">
+                        <label for="thinking_level">Thinking Level:</label>
+                        <select id="thinking_level" name="thinking_level" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                            <option value="auto" {% if config.omp.thinking_level == 'auto' %}selected{% endif %}>Auto (default)</option>
+                            <option value="off" {% if config.omp.thinking_level == 'off' %}selected{% endif %}>Off</option>
+                            <option value="minimal" {% if config.omp.thinking_level == 'minimal' %}selected{% endif %}>Minimal</option>
+                            <option value="low" {% if config.omp.thinking_level == 'low' %}selected{% endif %}>Low</option>
+                            <option value="medium" {% if config.omp.thinking_level == 'medium' %}selected{% endif %}>Medium</option>
+                            <option value="high" {% if config.omp.thinking_level == 'high' %}selected{% endif %}>High</option>
+                            <option value="xhigh" {% if config.omp.thinking_level == 'xhigh' %}selected{% endif %}>Extra High</option>
+                            <option value="max" {% if config.omp.thinking_level == 'max' %}selected{% endif %}>Max</option>
+                        </select>
+                        <small>Controls how much the model reasons before acting. Auto adapts to the model's defaults.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="system_prompt">System Prompt:</label>
+                        <textarea id="system_prompt" name="system_prompt" rows="3" style="width: 100%; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.5rem;" placeholder="Override default system prompt">{{ config.omp.system_prompt }}</textarea>
+                        <small>Replaces the default coding assistant prompt. Leave blank for default.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="append_system_prompt">Append System Prompt:</label>
+                        <textarea id="append_system_prompt" name="append_system_prompt" rows="3" style="width: 100%; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.5rem;" placeholder="Additional instructions appended to system prompt">{{ config.omp.append_system_prompt }}</textarea>
+                        <small>Appended to the system prompt without replacing it. Useful for extra instructions.</small>
+                    </div>
+                </fieldset>
+
+                <!-- Multi-Model Roles -->
+                <fieldset>
+                    <legend>Multi-Model Roles</legend>
+                    <div class="form-group">
+                        <label for="smol_model">Smol / Fast Model:</label>
+                        <input type="text" id="smol_model" name="smol_model" value="{{ config.omp.smol_model }}" placeholder="Fast model for lightweight tasks">
+                        <small>Used for lightweight tasks like formatting, quick lookups. Overrides PI_SMOL_MODEL.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="slow_model">Slow / Reasoning Model:</label>
+                        <input type="text" id="slow_model" name="slow_model" value="{{ config.omp.slow_model }}" placeholder="Deep reasoning model for complex tasks">
+                        <small>Used for complex tasks requiring thorough reasoning. Overrides PI_SLOW_MODEL.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="plan_model">Plan Model:</label>
+                        <input type="text" id="plan_model" name="plan_model" value="{{ config.omp.plan_model }}" placeholder="Model for architectural planning">
+                        <small>Used for architectural planning sessions. Overrides PI_PLAN_MODEL.</small>
+                    </div>
+                </fieldset>
+
+                <!-- Tooling & Approvals -->
+                <fieldset>
+                    <legend>Tooling &amp; Approvals</legend>
+                    <div class="form-group">
+                        <label for="tools_filter">Tools Filter:</label>
+                        <input type="text" id="tools_filter" name="tools_filter" value="{{ config.omp.tools_filter }}" placeholder="Comma-separated tool names (e.g., read,search,bash)">
+                        <small>Comma-separated list of tools to enable. Leave blank for all tools.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="approval_mode">Approval Mode:</label>
+                        <select id="approval_mode" name="approval_mode" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                            <option value="" {% if config.omp.approval_mode == '' %}selected{% endif %}>Default</option>
+                            <option value="always-ask" {% if config.omp.approval_mode == 'always-ask' %}selected{% endif %}>Always Ask</option>
+                            <option value="write" {% if config.omp.approval_mode == 'write' %}selected{% endif %}>Write (auto-approve writes)</option>
+                            <option value="yolo" {% if config.omp.approval_mode == 'yolo' %}selected{% endif %}>YOLO (auto-approve everything)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" name="auto_approve" value="on" {% if config.omp.auto_approve %}checked{% endif %}>
+                            <span>Auto-approve all tool calls</span>
+                        </label>
+                        <small>Skips approval prompts for all tool calls.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" name="disable_lsp" value="on" {% if config.omp.disable_lsp %}checked{% endif %}>
+                            <span>Disable LSP tools</span>
+                        </label>
+                        <small>Disables LSP tools, formatting, and diagnostics.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" name="disable_pty" value="on" {% if config.omp.disable_pty %}checked{% endif %}>
+                            <span>Disable PTY bash</span>
+                        </label>
+                        <small>Disables PTY-based interactive bash execution.</small>
+                    </div>
+                </fieldset>
+
+                <!-- Advanced -->
+                <fieldset>
+                    <legend>Advanced</legend>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" name="fast_mode" value="on" {% if config.omp.fast_mode %}checked{% endif %}>
+                            <span>Fast Mode</span>
+                        </label>
+                        <small>Enable fast mode for quicker responses (may reduce quality).</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" name="auto_compaction" value="on" {% if config.omp.auto_compaction %}checked{% endif %}>
+                            <span>Auto Compaction</span>
+                        </label>
+                        <small>Automatically compact conversation when context is filling up. (default: on)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" name="advisor" value="on" {% if config.omp.advisor %}checked{% endif %}>
+                            <span>Advisor</span>
+                        </label>
+                        <small>Enable advisor runtime (passively reviews every turn and injects notes).</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" name="hide_thinking" value="on" {% if config.omp.hide_thinking %}checked{% endif %}>
+                            <span>Hide Thinking Blocks</span>
+                        </label>
+                        <small>Hide thinking blocks in output (display only, does not disable model thinking).</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" name="no_session" value="on" {% if config.omp.no_session %}checked{% endif %}>
+                            <span>Ephemeral Session (no save)</span>
+                        </label>
+                        <small>Don't save session after run. Each interaction starts fresh.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tool_extensions">Tool Extensions (comma separated):</label>
+                        <input type="text" id="tool_extensions" name="tool_extensions" value="{{ ', '.join(config.omp.tool_extensions) }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="local_mounts">Local Mounts (comma separated):</label>
+                        <input type="text" id="local_mounts" name="local_mounts" value="{{ ', '.join(config.omp.local_mounts) }}">
+                    </div>
+                </fieldset>
+
+                <button type="submit">Save &amp; Restart OMP</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Fast-Path Middleware Rules</h2>
+            <p>Intercept incoming transcripts and reply instantly without invoking OMP.</p>
+
+            <form action="/middleware/add" method="POST" style="margin-bottom: 2rem;">
+                <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label for="pattern">Match Pattern (Regex or Substring):</label>
+                        <input type="text" id="pattern" name="pattern" required placeholder="e.g. what is the weather">
+                    </div>
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label for="response">Instant Response:</label>
+                        <input type="text" id="response" name="response" required placeholder="e.g. Looking outside!">
+                    </div>
+                    <button type="submit">Add Rule</button>
+                </div>
+            </form>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Pattern</th>
+                        <th>Response</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rule in config.middleware_rules %}
+                    <tr>
+                        <td><code>{{ rule.pattern }}</code></td>
+                        <td>{{ rule.response }}</td>
+                        <td>
+                            <form action="/middleware/delete/{{ rule.id }}" method="POST" style="display: inline;">
+                                <button type="submit" class="delete-btn">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" style="text-align: center; color: #64748b;">No rules configured yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card chat-card">
+            <h2>Test Chat Interface</h2>
+            <p>Directly talk to the bridge to validate OMP and middleware functionality.</p>
+
+            <div id="chat-log" class="chat-log">
+                <!-- Chat messages will be appended here -->
+                <div class="message bot-message">Hello! Type a message to test the bridge.</div>
+            </div>
+
+            <form id="chat-form" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <input type="text" id="chat-input" placeholder="Say something..." autocomplete="off" style="flex: 1;">
+                <button type="submit" id="chat-submit">Send</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('provider').addEventListener('change', function() {
+            const baseUrlGroup = document.getElementById('base_url_group');
+            if (this.value === 'Custom') {
+                baseUrlGroup.style.display = 'block';
+            } else {
+                baseUrlGroup.style.display = 'none';
+            }
+        });
+
+        document.getElementById('fetch_models_btn').addEventListener('click', async () => {
+            const provider = document.getElementById('provider').value;
+            const baseUrl = document.getElementById('base_url').value;
+            const apiKey = document.getElementById('api_key').value;
+            const statusDiv = document.getElementById('model_fetch_status');
+            const modelList = document.getElementById('model_list');
+            const modelInput = document.getElementById('model');
+
+            statusDiv.textContent = 'Fetching models...';
+            statusDiv.style.color = '#3b82f6';
+
+            try {
+                const url = new URL('/api/models', window.location.origin);
+                url.searchParams.append('provider', provider);
+                url.searchParams.append('base_url', baseUrl);
+                url.searchParams.append('api_key', apiKey);
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.error) {
+                    statusDiv.textContent = 'Error: ' + data.error;
+                    statusDiv.style.color = '#ef4444';
+                } else if (data.models && data.models.length > 0) {
+                    modelList.innerHTML = '';
+                    data.models.forEach(m => {
+                        const option = document.createElement('option');
+                        option.value = m;
+                        modelList.appendChild(option);
+                    });
+                    statusDiv.textContent = `Found ${data.models.length} model(s). Double-click input to view list.`;
+                    statusDiv.style.color = '#10b981';
+
+                    // Auto-fill if empty
+                    if (!modelInput.value) {
+                        modelInput.value = data.models[0];
+                    }
+                } else {
+                    statusDiv.textContent = 'No models found.';
+                    statusDiv.style.color = '#f59e0b';
+                }
+            } catch (error) {
+                statusDiv.textContent = 'Failed to fetch models: ' + error.message;
+                statusDiv.style.color = '#ef4444';
+            }
+        });
+
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const chatLog = document.getElementById('chat-log');
+        const chatSubmit = document.getElementById('chat-submit');
+
+        function appendMessage(text, sender, source = null) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message');
+            msgDiv.classList.add(sender === 'user' ? 'user-message' : 'bot-message');
+
+            let content = text;
+            if (source) {
+                content += ` <span style="font-size: 0.75rem; color: #64748b; margin-left: 0.5rem;">(${source})</span>`;
+            }
+            msgDiv.innerHTML = content;
+
+            chatLog.appendChild(msgDiv);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            // Display user message
+            appendMessage(text, 'user');
+            chatInput.value = '';
+            chatSubmit.disabled = true;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    appendMessage(data.reply, 'bot', data.source);
+                } else {
+                    appendMessage('Error communicating with server.', 'bot', 'error');
+                }
+            } catch (error) {
+                appendMessage('Error: ' + error.message, 'bot', 'error');
+            } finally {
+                chatSubmit.disabled = false;
+                chatInput.focus();
+            }
+        });
+    </script>
+</body>
+</html>

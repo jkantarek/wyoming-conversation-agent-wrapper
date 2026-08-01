@@ -1,10 +1,10 @@
 {
   "omp": {
     "host_info": "",
-    "provider": "Custom",
-    "api_key": "",
-    "base_url": "http://10.0.0.139:8002/v1",
-    "model": "Qwen3.6-27B-UD-Q2_K_XL.gguf",
+    "provider": "OpenAI",
+    "api_key": "sk-...",
+    "base_url": "",
+    "model": "gpt-4o",
     "api_keys": {},
     "tool_extensions": [],
     "local_mounts": [],
@@ -16,14 +16,14 @@
     "plan_model": "",
     "tools_filter": "",
     "auto_approve": true,
-    "approval_mode": "yolo",
-    "disable_lsp": true,
-    "disable_pty": true,
-    "no_session": true,
-    "hide_thinking": true,
-    "advisor": true,
-    "fast_mode": true,
-    "auto_compaction": true
+    "approval_mode": "",
+    "disable_lsp": false,
+    "disable_pty": false,
+    "no_session": false,
+    "hide_thinking": false,
+    "advisor": false,
+    "fast_mode": false,
+    "auto_compaction": false
   },
   "middleware_rules": []
 }

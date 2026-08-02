@@ -33,8 +33,7 @@ jobs:
           tags: |
             type=sha,prefix=
             type=ref,event=branch
-            type=ref,event=push
-            type=ref,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }},always=true
+            type=ref,value=latest,enable=${{ github.ref == format('refs/heads/main') }},always=true
 
       - name: Build and push
         uses: docker/build-push-action@v5

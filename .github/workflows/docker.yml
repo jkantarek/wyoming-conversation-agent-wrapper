@@ -33,8 +33,7 @@ jobs:
           tags: |
             type=sha,prefix=
             type=ref,event=branch
-          flavor: |
-            latest
+            type=raw,value=latest
 
       - name: Build and push
         uses: docker/build-push-action@v5

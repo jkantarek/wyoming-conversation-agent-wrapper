@@ -1,9 +1,13 @@
-FROM python:3.11-slim
+FROM python:3.14.6-slim-bookworm
 
 WORKDIR /app
 
-# Install curl, nodejs, npm and bun for omp
-RUN apt-get update && apt-get install -y curl nodejs npm unzip && rm -rf /var/lib/apt/lists/*
+# Install Node 24 via NodeSource, curl, unzip
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
+    apt-get install -y nodejs unzip && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install bun
 RUN npm install -g bun
 
 # Install OMP globally

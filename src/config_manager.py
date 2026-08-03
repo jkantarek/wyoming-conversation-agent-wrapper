@@ -38,6 +38,9 @@ class OmpConfig(BaseModel):
     advisor: bool = False
     fast_mode: bool = False
     auto_compaction: bool = True
+    # OMP platform authentication
+    omp_auth_json: str = ""
+    omp_auth_json_file: str = ""
 
 class AppConfig(BaseModel):
     omp: OmpConfig = Field(default_factory=OmpConfig)

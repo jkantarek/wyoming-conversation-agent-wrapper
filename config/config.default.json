@@ -23,7 +23,9 @@
     "hide_thinking": false,
     "advisor": false,
     "fast_mode": false,
-    "auto_compaction": false
+    "auto_compaction": false,
+    "omp_auth_json": "",
+    "omp_auth_json_file": ""
   },
   "middleware_rules": []
 }

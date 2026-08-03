@@ -91,6 +91,9 @@ async def update_omp(
     # Advanced
     fast_mode: str = Form("on"),
     auto_compaction: str = Form("on"),
+    # OMP auth
+    omp_auth_json: str = Form(""),
+    omp_auth_json_file: str = Form(""),
 ):
     config = config_manager.get_config()
 
@@ -136,6 +139,10 @@ async def update_omp(
     # Advanced
     config.omp.fast_mode = fast_mode == "on"
     config.omp.auto_compaction = auto_compaction == "on"
+
+    # OMP auth
+    config.omp.omp_auth_json = omp_auth_json.strip()
+    config.omp.omp_auth_json_file = omp_auth_json_file.strip()
 
     config_manager.save_config()
 

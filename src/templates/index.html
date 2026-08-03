@@ -207,6 +207,18 @@
                         <label for="local_mounts">Local Mounts (comma separated):</label>
                         <input type="text" id="local_mounts" name="local_mounts" value="{{ ', '.join(config.omp.local_mounts) }}">
                     </div>
+
+                    <div class="form-group">
+                        <label for="omp_auth_json">OMP Platform Auth JSON:</label>
+                        <textarea id="omp_auth_json" name="omp_auth_json" rows="4" style="width: 100%; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.5rem;" placeholder="Paste auth.json content here">{{ config.omp.omp_auth_json }}</textarea>
+                        <small>Paste the contents of <code>~/.omp/agent/auth.json</code> here to authenticate the OMP agent with the platform. Leave blank to use <code>OMP_AGENT_AUTH_JSON_FILE</code> below.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="omp_auth_json_file">OMP Auth JSON File Path:</label>
+                        <input type="text" id="omp_auth_json_file" name="omp_auth_json_file" value="{{ config.omp.omp_auth_json_file }}" placeholder="/app/config/auth.json">
+                        <small>Path to a file containing the OMP agent auth JSON. Leave blank if using the JSON content above.</small>
+                    </div>
                 </fieldset>
 
                 <button type="submit">Save &amp; Restart OMP</button>

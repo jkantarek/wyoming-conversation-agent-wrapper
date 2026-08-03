@@ -137,8 +137,9 @@ async def run_wyoming_server(host: str, port: int, middleware: Middleware, omp_s
     server = AsyncServer.from_uri(f"tcp://{host}:{port}")
     logger.info(f"Starting Wyoming server on tcp://{host}:{port}")
 
-    # Start OMP Subprocess
-    await omp_subprocess.start()
+    # Start OMP Subprocess lazily — don't block server startup on OMP init.
+    # The subprocess starts in the background; queries trigger connection on demand.
+    asyncio.create_task(omp_subprocess.start())
 
     # The wyoming AsyncServer.run is a coroutine that handles incoming connections
     # We pass a handler factory — called for each new TCP connection

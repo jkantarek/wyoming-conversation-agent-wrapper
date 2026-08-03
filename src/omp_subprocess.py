@@ -113,6 +113,12 @@ class OmpSubprocess:
         if config.advisor:
             cmd.append("--advisor")
 
+        # OMP platform authentication
+        if config.omp_auth_json:
+            env["OMP_AGENT_AUTH_JSON"] = config.omp_auth_json
+        if config.omp_auth_json_file:
+            env["OMP_AGENT_AUTH_JSON_FILE"] = config.omp_auth_json_file
+
         # Inject extra env vars
         for k, v in config.api_keys.items():
             env[k] = v
@@ -216,7 +222,14 @@ class OmpSubprocess:
     async def query(self, text: str) -> str:
         if not self.process or self.process.returncode is not None:
             logger.info("OMP process is not running, attempting to start")
-            await self._start_unsafe()
+            try:
+                await asyncio.wait_for(self._start_unsafe(), timeout=10.0)
+            except asyncio.TimeoutError:
+                logger.error("OMP subprocess did not become ready in time.")
+                return "OMP is not ready. Ensure OMP_AGENT_AUTH_JSON or OMP_AGENT_AUTH_JSON_FILE is configured."
+            except Exception as e:
+                logger.error(f"Failed to start OMP subprocess: {e}")
+                return "OMP failed to start. Check server logs."
 
         # Guard: if start failed (raised + set self.process = None), bail
         if not self.process:

@@ -114,10 +114,10 @@ class OmpSubprocess:
             cmd.append("--advisor")
 
         # OMP platform authentication
-        if config.omp_auth_json:
-            env["OMP_AGENT_AUTH_JSON"] = config.omp_auth_json
-        if config.omp_auth_json_file:
-            env["OMP_AGENT_AUTH_JSON_FILE"] = config.omp_auth_json_file
+        # Use config values if set, otherwise fall back to environment variables.
+        # This allows deployment via OMP_AGENT_AUTH_JSON_FILE without config UI.
+        env.setdefault("OMP_AGENT_AUTH_JSON", config.omp_auth_json or env.get("OMP_AGENT_AUTH_JSON", ""))
+        env.setdefault("OMP_AGENT_AUTH_JSON_FILE", config.omp_auth_json_file or env.get("OMP_AGENT_AUTH_JSON_FILE", ""))
 
         # Inject extra env vars
         for k, v in config.api_keys.items():
